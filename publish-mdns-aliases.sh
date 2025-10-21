@@ -5,6 +5,49 @@ BASE_HOST="${BASE_HOST:-rotom.local}"
 ALIASES="${ALIASES:-immich.rotom.local}"   # comma-separated
 IFS=',' read -r -a ALIAS_ARR <<< "$ALIASES"
 
+DBUS_PID=""
+AVAHI_PID=""
+PIDS=()
+
+start_dbus() {
+  echo "[mdns] Starting local D-Bus..."
+  mkdir -p /run/dbus
+  dbus-uuidgen --ensure=/etc/machine-id
+  dbus-daemon --system --fork --print-pid=/run/dbus/pid
+  DBUS_PID="$(cat /run/dbus/pid)"
+}
+
+start_avahi() {
+  echo "[mdns] Starting local Avahi daemon..."
+  mkdir -p /run/avahi-daemon
+  avahi-daemon --daemonize --no-drop-root --no-rlimits
+  AVAHI_PID="$(cat /run/avahi-daemon/pid)"
+
+  # Wait for Avahi to answer commands (max ~5 seconds)
+  for _ in {1..10}; do
+    if avahi-browse -a -t >/dev/null 2>&1; then
+      return
+    fi
+    sleep 0.5
+  done
+
+  echo "[mdns] Warning: Avahi daemon did not become ready; continuing anyway..."
+}
+
+stop_services() {
+  kill_publishers || true
+
+  if [[ -n "${AVAHI_PID:-}" ]]; then
+    avahi-daemon -k >/dev/null 2>&1 || true
+    wait "$AVAHI_PID" 2>/dev/null || true
+  fi
+
+  if [[ -n "${DBUS_PID:-}" ]]; then
+    kill "$DBUS_PID" 2>/dev/null || true
+    wait "$DBUS_PID" 2>/dev/null || true
+  fi
+}
+
 resolve_ip() {
   avahi-resolve-host-name -4 "$BASE_HOST" | awk '{print $2}'
 }
@@ -26,6 +69,11 @@ kill_publishers() {
   done
   PIDS=()
 }
+
+trap stop_services EXIT INT TERM
+
+start_dbus
+start_avahi
 
 current_ip=""
 while true; do

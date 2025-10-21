@@ -12,14 +12,13 @@ For example, you can set up `immich.rotom.local` to resolve to the IP of `rotom.
 - `publish-mdns-aliases.sh` – resolves `BASE_HOST` and publishes aliases
 
 ## Requirements
-- Avahi (Bonjour) running on the **host**
+- Avahi (Bonjour) running on the **host** so the `BASE_HOST` name resolves:
   ```bash
   sudo apt-get install -y avahi-daemon avahi-utils libnss-mdns
   sudo systemctl enable --now avahi-daemon
   ```
-- Host must allow the container to talk to D-Bus:
-  - The compose file mounts `/var/run/dbus` read-only.
 - Host networking is used so mDNS can operate: `network_mode: host`
+- Container needs the `NET_RAW` capability (added in the compose file).
 
 ## Use
 ```bash
@@ -34,6 +33,8 @@ avahi-resolve -n immich.rotom.local
   ```yaml
   ALIASES: immich.rotom.local,api.rotom.local,ui.rotom.local
   ```
+
+The container now runs its own `dbus-daemon` and `avahi-daemon`, so no host D-Bus mounts are required.
 
 ## Coolify
 Set your app domain to `immich.rotom.local` and **disable Let's Encrypt** (no public DNS). Deploy.

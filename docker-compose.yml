@@ -10,5 +10,5 @@ services:
     environment:
       BASE_HOST: rotom.local
       ALIASES: immich.rotom.local
-    volumes:
-      - /var/run/dbus:/var/run/dbus:ro
+    cap_add:
+      - NET_RAW
