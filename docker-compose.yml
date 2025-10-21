@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  mdns-immich:
+    build:
+      context: .
+      dockerfile: Dockerfile.mdns
+    container_name: mdns-immich
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      BASE_HOST: rotom.local
+      ALIASES: immich.rotom.local
+    volumes:
+      - /var/run/dbus:/var/run/dbus:ro

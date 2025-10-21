@@ -1,0 +1,8 @@
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        avahi-utils bash ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY publish-mdns-aliases.sh /usr/local/bin/
+ENTRYPOINT ["/usr/local/bin/publish-mdns-aliases.sh"]
