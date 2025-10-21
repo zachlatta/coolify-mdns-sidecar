@@ -34,19 +34,8 @@ start_dbus() {
   echo "[mdns] Starting local D-Bus..."
   mkdir -p /run/dbus
   dbus-uuidgen --ensure=/etc/machine-id
-  dbus-daemon --system --fork
-
-  for _ in {1..10}; do
-    if [[ -S /run/dbus/system_bus_socket ]]; then
-      if [[ -f /run/dbus/pid ]]; then
-        DBUS_PID="$(cat /run/dbus/pid || true)"
-      fi
-      return
-    fi
-    sleep 0.2
-  done
-
-  echo "[mdns] Warning: D-Bus socket not ready; continuing..."
+  dbus-daemon --system --fork --print-pid=/run/dbus/pid
+  DBUS_PID="$(cat /run/dbus/pid)"
 }
 
 start_avahi() {
