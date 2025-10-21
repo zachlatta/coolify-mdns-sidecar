@@ -33,6 +33,7 @@ avahi-resolve -n immich.rotom.local
   ```yaml
   ALIASES: immich.rotom.local,api.rotom.local,ui.rotom.local
   ```
+- The sidecar auto-selects a non-Docker IPv4 for `BASE_HOST`, so aliases follow the same LAN IP announced by Avahi.
 
 The container now runs its own `dbus-daemon` and `avahi-daemon`, so no host D-Bus mounts are required.
 
