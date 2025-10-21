@@ -33,6 +33,38 @@ is_preferred_ip() {
   return 0
 }
 
+find_host_ip_from_interfaces() {
+  local target="${BASE_HOST%%.local}"
+  target="${target,,}"
+
+  while IFS= read -r line; do
+    # Example line: "3: wlo1    inet 10.0.0.73/8 ..."
+    local iface cidr ip resolved
+    iface="$(awk '{print $2}' <<<"$line")"
+    cidr="$(awk '{print $4}' <<<"$line")"
+    ip="${cidr%/*}"
+
+    # sanitize interface name (strip possible trailing colon)
+    iface="${iface%:}"
+
+    case "$iface" in
+      lo|docker0|tailscale0) continue ;;
+      br-*|veth*|zt*|cni*) continue ;;
+    esac
+
+    resolved="$(avahi-resolve-host-name -a -4 "$ip" 2>/dev/null | awk '{print $2}' || true)"
+    resolved="${resolved%.local}"
+    resolved="${resolved,,}"
+
+    if [[ -n "$resolved" && "$resolved" == "$target" ]]; then
+      echo "$ip"
+      return 0
+    fi
+  done < <(ip -4 -o addr show scope global 2>/dev/null || true)
+
+  return 1
+}
+
 start_dbus() {
   echo "[mdns] Starting local D-Bus..."
   mkdir -p /run/dbus
@@ -82,6 +114,12 @@ stop_services() {
 }
 
 resolve_ip() {
+  local iface_ip
+  if iface_ip="$(find_host_ip_from_interfaces)"; then
+    echo "$iface_ip"
+    return 0
+  fi
+
   local -a addresses=()
   mapfile -t addresses < <(getent ahostsv4 "$BASE_HOST" 2>/dev/null | awk '!seen[$1]++ {print $1}' || true)
 
