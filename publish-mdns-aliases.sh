@@ -37,15 +37,12 @@ find_host_ip_from_interfaces() {
   local target="${BASE_HOST%%.local}"
   target="${target,,}"
 
-  while IFS= read -r line; do
-    # Example line: "3: wlo1    inet 10.0.0.73/8 ..."
-    local iface cidr ip resolved
-    iface="$(awk '{print $2}' <<<"$line")"
-    cidr="$(awk '{print $4}' <<<"$line")"
-    ip="${cidr%/*}"
+  while read -r idx iface family cidr rest; do
+    [[ "$family" != "inet" ]] && continue
 
-    # sanitize interface name (strip possible trailing colon)
+    local ip resolved
     iface="${iface%:}"
+    ip="${cidr%/*}"
 
     case "$iface" in
       lo|docker0|tailscale0) continue ;;
