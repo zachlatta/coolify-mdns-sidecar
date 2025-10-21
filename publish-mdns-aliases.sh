@@ -9,27 +9,6 @@ DBUS_PID=""
 AVAHI_PID=""
 PIDS=()
 
-is_preferred_ip() {
-  local ip="$1"
-  [[ "$ip" == 127.* || "$ip" == 0.0.0.0 || "$ip" == 169.254.* ]] && return 1
-
-  if command -v ip >/dev/null 2>&1; then
-    local route
-    route="$(ip route get "$ip" 2>/dev/null || true)"
-    if [[ -z "$route" ]]; then
-      return 1
-    fi
-    if [[ "$route" == *" dev lo "* ]]; then
-      return 1
-    fi
-    if [[ "$route" == *" dev docker0 "* || "$route" == *" dev br-"* ]]; then
-      return 1
-    fi
-  fi
-
-  return 0
-}
-
 start_dbus() {
   echo "[mdns] Starting local D-Bus..."
   mkdir -p /run/dbus
@@ -70,22 +49,7 @@ stop_services() {
 }
 
 resolve_ip() {
-  local -a addresses=()
-  mapfile -t addresses < <(getent ahostsv4 "$BASE_HOST" 2>/dev/null | awk '!seen[$1]++ {print $1}' || true)
-
-  for addr in "${addresses[@]}"; do
-    if is_preferred_ip "$addr"; then
-      echo "$addr"
-      return 0
-    fi
-  done
-
-  if [[ ${#addresses[@]} -gt 0 ]]; then
-    echo "${addresses[0]}"
-    return 0
-  fi
-
-  return 1
+  avahi-resolve-host-name -4 "$BASE_HOST" | awk '{print $2}'
 }
 
 publish_once() {
