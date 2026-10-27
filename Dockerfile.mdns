@@ -1,6 +1,8 @@
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# apt-get upgrade: debian:bookworm-slim lags Debian security fixes (OpenSSL
+# CVE-2026-84782, deb12u2, was missing on 2026-10-27).
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
         avahi-daemon avahi-utils bash ca-certificates dbus libnss-mdns iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
